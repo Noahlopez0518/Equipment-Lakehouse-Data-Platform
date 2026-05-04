@@ -25,29 +25,28 @@ Semantic Model (relationships + DAX measures)
 Power BI Dashboards
 ```
 
-**Data Split Strategy:**
-- **Python/PySpark**: 10 smaller endpoints (1,300 - 500,000 rows)
-- **Dataflow Gen2**: 4 largest endpoints (500,000 - 1.5M rows) for optimized performance
-
 ## 📊 Data Sources
+1. `asset_master` - Core asset/equipment master data
+2. `asset_financial_ledger` - Financial data, purchase prices, and depreciation
+3. `asset_assignment_history` - Equipment assignment and personnel tracking
+4. `asset_tag_associations` - Asset labeling and category mapping
+5. `asset_diagnostic_codes` - Diagnostic trouble and fault code definitions
+6. `asset_label_definitions` - Master definitions for tags and categories
+7. `asset_org_history` - Internal department and business unit alignment
+8. `asset_compliance_data` - Registration, permits, and compliance records
+9. `asset_site_history` - Historical site and project location logs
+10. `asset_warranty_tracking` - Warranty information and expiration details
+11. `telematics_hardware_inventory` - GPS trackers and IoT sensor hardware inventory
+12. `parts_master_catalog` - Master list of maintenance and repair parts
+13. `parts_inventory_levels` - Real-time warehouse and site stock tracking
+14. `parts_asset_allocations` - Ledger of parts currently installed on equipment
+15. `parts_transaction_audit` - Audit trail of part movements and cost transfers
+16. `daily_meter_readings` - Daily equipment readings (hours, odometer)
+17. `daily_utilization_metrics` - Calculated daily performance and runtime metrics
+18. `daily_site_utilization` - Site-level daily deployment and activity
+19. `daily_efficiency_analytics` - Net working hours and idle time calculations
+20. `Trip`
 
-### Static Tables (Full Refresh)
-1. `asset_financials` - Financial data, purchases, rentals, depreciation
-2. `assets` - Core asset/equipment master data
-3. `asset_assignee_history` - Equipment assignment tracking
-4. `asset_label_associations` - Asset labeling and categorization
-5. `asset_dt_codes` - Diagnostic trouble codes
-6. `asset_labels` - Label definitions
-7. `asset_organization_history` - Organizational changes
-8. `asset_registrations` - Registration and compliance data
-9. `asset_site_history` - Site location history
-10. `asset_warranties` - Warranty information
-
-### Daily Tables (Incremental Load)
-11. `asset_readings_daily` - Daily equipment readings (hours, odometer)
-12. `asset_utilizations_daily` - Daily utilization metrics
-13. `asset_site_daily_utilizations` - Site-level daily utilization
-14. `asset_net_working_hours_daily` - Net working hours calculations
 
 ## 🚀 Key Features
 
