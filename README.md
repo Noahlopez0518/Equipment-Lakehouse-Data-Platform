@@ -1,4 +1,4 @@
-# Tenna Lakehouse Data Platform - Microsoft Fabric
+# Equipment Lakehouse Data Platform - Microsoft Fabric
 
 An automated data engineering solution built on Microsoft Fabric that centralizes equipment tracking data from 14 Tenna API endpoints into a lakehouse architecture with Delta tables, enabling real-time analytics and automated reporting.
 
