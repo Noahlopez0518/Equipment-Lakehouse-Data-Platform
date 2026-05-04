@@ -15,8 +15,8 @@ from pyspark.sql.types import (
 )
 from delta.tables import DeltaTable
 
-API_TOKEN = "TENNA_API_TOKEN_HERE"  
-BASE_URL = "https://api.tenna.com/v1"
+API_TOKEN = "API_TOKEN_HERE"  
+BASE_URL = "https://api.com/v1"
 LIMIT = 100
 MAX_RETRIES = 5
 RETRY_DELAY = 60
