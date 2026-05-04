@@ -10,8 +10,8 @@ from pyspark.sql.types import (
     StructField, StringType
 )
 
-API_TOKEN = "TENNA_API_TOKEN_HERE"
-BASE_URL = "https://api.tenna.com/v1"
+API_TOKEN = "API_TOKEN_HERE"
+BASE_URL = "https://api.com/v1"
 LIMIT = 100
 
 print("\n" + "="*70)
@@ -25,24 +25,24 @@ control_schema = StructType([
 ])
 
 try:
-    spark.sql("SELECT * FROM Tenna_Raw.control_last_run LIMIT 1")
+    spark.sql("SELECT * FROM Data_Raw.control_last_run LIMIT 1")
     print("Control table already exists")
 except:
     print("Creating control_last_run table...")
     control_df = spark.createDataFrame([
-        ("tenna_asset_tables", datetime.now(), "initialized")
+        ("asset_tables", datetime.now(), "initialized")
     ], schema=control_schema)
     
-    control_df.write.format("delta").mode("overwrite").saveAsTable("Tenna_Raw.control_last_run")
+    control_df.write.format("delta").mode("overwrite").saveAsTable("Data_Raw.control_last_run")
     print("Control table created")
 
 def download_and_save_endpoint(endpoint_name, table_name, datetime_cols=[], long_int_cols=[], boolean_cols=[]):
     """
-    Downloads data from Tenna API endpoint and saves to lakehouse table
+    Downloads data from API endpoint and saves to lakehouse table
     
     Args:
         endpoint_name: API endpoint (e.g., "assets", "asset-financials")
-        table_name: Table name to save to (e.g., "Tenna_Raw.assets")
+        table_name: Table name to save to (e.g., "Data_Raw.assets")
         datetime_cols: List of columns to cast as timestamp
         long_int_cols: List of columns to cast as long integer
         boolean_cols: List of columns to cast as boolean
@@ -135,13 +135,13 @@ def download_and_save_endpoint(endpoint_name, table_name, datetime_cols=[], long
     return df
 
 print("\n" + "="*70)
-print("STARTING TENNA API DATA PIPELINE - ALL 13 TABLES")
+print("STARTING API DATA PIPELINE - ALL 13 TABLES")
 print("="*70)
 
 # 1. Asset Financials
 df_financials = download_and_save_endpoint(
     endpoint_name="asset-financials",
-    table_name="Tenna_Raw.asset_financials",
+    table_name="Data_Raw.asset_financials",
     datetime_cols=["purchase_date", "created_at", "updated_at", "last_reading_date", 
                    "rental_start", "rental_actual_end", "rental_forecasted_end", 
                    "rpo_expiration", "sold_date", "insurance_expiration_date", 
@@ -154,7 +154,7 @@ df_financials = download_and_save_endpoint(
 # 2. Assets
 df_assets = download_and_save_endpoint(
     endpoint_name="assets",
-    table_name="Tenna_Raw.assets",
+    table_name="Data_Raw.assets",
     datetime_cols=["created_at", "updated_at", "tracker_last_data_received", 
                    "tracker_installed_at", "tracker_verification_date"],
     long_int_cols=["year", "engine_year", "dimensions_tire_quantity", 
@@ -166,7 +166,7 @@ df_assets = download_and_save_endpoint(
 # 3. Asset Assignee History
 df_assignee_history = download_and_save_endpoint(
     endpoint_name="asset-assignee-history",
-    table_name="Tenna_Raw.asset_assignee_history",
+    table_name="Data_Raw.asset_assignee_history",
     datetime_cols=["assignment_start", "assignment_end", "updated_at"],
     long_int_cols=[],
     boolean_cols=["currently_assigned"]
@@ -175,7 +175,7 @@ df_assignee_history = download_and_save_endpoint(
 # 4. Asset Label Associations
 df_label_associations = download_and_save_endpoint(
     endpoint_name="asset-label-associations",
-    table_name="Tenna_Raw.asset_label_associations",
+    table_name="Data_Raw.asset_label_associations",
     datetime_cols=["associated_at", "removed_at", "updated_at", "asset_label_created_at"],
     long_int_cols=["asset_label_order"],
     boolean_cols=["currently_applied", "asset_label_deactivated"]
@@ -184,7 +184,7 @@ df_label_associations = download_and_save_endpoint(
 # 5. Asset DT Codes (Diagnostic Trouble Codes)
 df_dt_codes = download_and_save_endpoint(
     endpoint_name="asset-dt-codes",
-    table_name="Tenna_Raw.asset_dt_codes",
+    table_name="Data_Raw.asset_dt_codes",
     datetime_cols=["timestamp", "acknowledged_at", "created_at", "updated_at"],
     long_int_cols=[],
     boolean_cols=["is_acknowledged"]
@@ -193,7 +193,7 @@ df_dt_codes = download_and_save_endpoint(
 # 6. Asset Labels
 df_labels = download_and_save_endpoint(
     endpoint_name="asset-labels",
-    table_name="Tenna_Raw.asset_labels",
+    table_name="Data_Raw.asset_labels",
     datetime_cols=["deactivated_at", "created_at", "updated_at"],
     long_int_cols=["order"],
     boolean_cols=["deactivated"]
@@ -202,7 +202,7 @@ df_labels = download_and_save_endpoint(
 # 7. Asset Organization History
 df_org_history = download_and_save_endpoint(
     endpoint_name="asset-organization-history",
-    table_name="Tenna_Raw.asset_organization_history",
+    table_name="Data_Raw.asset_organization_history",
     datetime_cols=["from", "to", "updated_at"],
     long_int_cols=[],
     boolean_cols=["currently_applied"]
@@ -211,7 +211,7 @@ df_org_history = download_and_save_endpoint(
 # 8. Asset Registrations
 df_registrations = download_and_save_endpoint(
     endpoint_name="asset-registrations",
-    table_name="Tenna_Raw.asset_registrations",
+    table_name="Data_Raw.asset_registrations",
     datetime_cols=["expiration_date", "updated_at"],
     long_int_cols=[],
     boolean_cols=[]
@@ -220,7 +220,7 @@ df_registrations = download_and_save_endpoint(
 # 9. Asset Site History
 df_site_history = download_and_save_endpoint(
     endpoint_name="asset-site-history",
-    table_name="Tenna_Raw.asset_site_history",
+    table_name="Data_Raw.asset_site_history",
     datetime_cols=["enter_date", "exit_date", "updated_at"],
     long_int_cols=[],
     boolean_cols=["currently_applied"]
@@ -228,7 +228,7 @@ df_site_history = download_and_save_endpoint(
 # 10. Asset Warranties
 df_warranties = download_and_save_endpoint(
     endpoint_name="asset-warranties",
-    table_name="Tenna_Raw.asset_warranties",
+    table_name="Data_Raw.asset_warranties",
     datetime_cols=["start_date", "end_value_date", "updated_at"],
     long_int_cols=[],
     boolean_cols=["expired"]
@@ -239,10 +239,10 @@ print("UPDATING CONTROL TABLE")
 print("="*70)
 
 control_update = spark.createDataFrame([
-    ("tenna_asset_tables", datetime.now(), "success")
+    ("asset_tables", datetime.now(), "success")
 ], schema=control_schema)
 
-control_update.write.format("delta").mode("overwrite").saveAsTable("Tenna_Raw.control_last_run")
+control_update.write.format("delta").mode("overwrite").saveAsTable("Data_Raw.control_last_run")
 
 print(f"Pipeline completed successfully at {datetime.now()}")
 
@@ -250,16 +250,16 @@ print("\n" + "="*70)
 print("PIPELINE COMPLETE - ALL 10 TABLES CREATED")
 print("="*70)
 print("Tables created:")
-print("  1. Tenna_Raw.asset_financials")
-print("  2. Tenna_Raw.assets")
-print("  3. Tenna_Raw.asset_assignee_history")
-print("  4. Tenna_Raw.asset_label_associations")
-print("  5. Tenna_Raw.asset_dt_codes")
-print("  6. Tenna_Raw.asset_labels")
-print("  7. Tenna_Raw.asset_organization_history")
-print("  8. Tenna_Raw.asset_registrations")
-print("  9. Tenna_Raw.asset_site_history")
-print(" 10. Tenna_Raw.asset_warranties")
+print("  1. Data_Raw.asset_financials")
+print("  2. Data_Raw.assets")
+print("  3. Data_Raw.asset_assignee_history")
+print("  4. Data_Raw.asset_label_associations")
+print("  5. Data_Raw.asset_dt_codes")
+print("  6. Data_Raw.asset_labels")
+print("  7. Data_Raw.asset_organization_history")
+print("  8. Data_Raw.asset_registrations")
+print("  9. Data_Raw.asset_site_history")
+print(" 10. Data_Raw.asset_warranties")
 print("\nControl table:")
-print(" 11. Tenna_Raw.control_last_run")
+print(" 11. Data_Raw.control_last_run")
 print("="*70)
