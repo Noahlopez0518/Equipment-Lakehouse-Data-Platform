@@ -4,17 +4,17 @@ Use this checklist to get up and running quickly.
 
 ## ✅ Pre-Setup
 
-- [ ] Have Tenna API token ready
+- [ ] Have API token ready
 - [ ] Have Microsoft Fabric workspace access
 - [ ] Have appropriate permissions to create resources
 
 ## ✅ Initial Setup (One-Time)
 
 ### Step 1: Create Resources
-- [ ] Create Fabric Lakehouse named `Tenna_Raw`
+- [ ] Create Fabric Lakehouse named `Data_Raw`
 - [ ] Upload `ten_tables_ingestion.ipynb` to workspace
 - [ ] Upload `daily_ingestion_function.ipynb` to workspace
-- [ ] Attach notebooks to `Tenna_Raw` lakehouse
+- [ ] Attach notebooks to `Data_Raw` lakehouse
 
 ### Step 2: Configure Credentials
 - [ ] Update `API_TOKEN` in `ten_tables_ingestion.ipynb` (line 23)
@@ -38,7 +38,7 @@ Use this checklist to get up and running quickly.
 ## ✅ Automation Setup
 
 ### Step 5: Create Pipeline
-- [ ] Create new Data Pipeline named `Tenna_Daily_Refresh`
+- [ ] Create new Data Pipeline named `Daily_Refresh`
 - [ ] Add notebook activities in order:
   1. [ ] `ten_tables_ingestion`
   2. [ ] `daily_readings_ingestion`
@@ -125,12 +125,12 @@ table_name = "..."         # Line 32
 
 **Check tables exist:**
 ```sql
-SHOW TABLES FROM Tenna_Raw;
+SHOW TABLES FROM Data_Raw;
 ```
 
 **Check row counts:**
 ```sql
-SELECT 'assets' as table, COUNT(*) as rows FROM Tenna_Raw.assets
+SELECT 'assets' as table, COUNT(*) as rows FROM Data_Raw.assets
 UNION ALL
 SELECT 'asset_utilizations_daily', COUNT(*) FROM asset_utilizations_daily;
 ```
@@ -138,7 +138,7 @@ SELECT 'asset_utilizations_daily', COUNT(*) FROM asset_utilizations_daily;
 **Check for duplicates:**
 ```sql
 SELECT asset_id, COUNT(*) 
-FROM Tenna_Raw.assets 
+FROM Data_Raw.assets 
 GROUP BY asset_id 
 HAVING COUNT(*) > 1;
 ```
