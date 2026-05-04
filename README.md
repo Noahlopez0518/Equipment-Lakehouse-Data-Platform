@@ -1,6 +1,6 @@
 # Equipment Lakehouse Data Platform - Microsoft Fabric
 
-An automated data engineering solution built on Microsoft Fabric that centralizes equipment tracking data from 14 Tenna API endpoints into a lakehouse architecture with Delta tables, enabling real-time analytics and automated reporting.
+An automated data engineering solution built on Microsoft Fabric that centralizes equipment tracking data from 14 API endpoints into a lakehouse architecture with Delta tables, enabling real-time analytics and automated reporting.
 
 ## 🎯 Project Overview
 
@@ -112,7 +112,7 @@ Power BI Dashboards
 
 ### Prerequisites
 - Microsoft Fabric workspace access
-- Tenna API token with read permissions
+- API token with read permissions
 - Python 3.8+ (for local development)
 
 ### Configuration
@@ -120,14 +120,14 @@ Power BI Dashboards
 1. **Create Lakehouse**
    ```
    - Navigate to Fabric workspace
-   - Create new Lakehouse named "Tenna_Raw"
+   - Create new Lakehouse named "Data_Raw"
    ```
 
 2. **Set API Credentials**
    ```python
    # In your notebook, set:
-   API_TOKEN = "your_tenna_api_token_here"
-   BASE_URL = "https://api.tenna.com/v1"
+   API_TOKEN = "your__api_token_here"
+   BASE_URL = "https://api.com/v1"
    ```
 
 3. **Upload Notebooks**
@@ -202,37 +202,36 @@ Example validation queries:
 
 ```sql
 -- Row count validation
-SELECT COUNT(*) as total_rows FROM Tenna_Raw.assets;
+SELECT COUNT(*) as total_rows FROM Raw.assets;
 
 -- Check for nulls in critical fields
 SELECT COUNT(*) as null_count 
-FROM Tenna_Raw.assets 
+FROM Raw.assets 
 WHERE asset_id IS NULL;
 
 -- Duplicate detection
 SELECT asset_id, COUNT(*) as dup_count
-FROM Tenna_Raw.assets
+FROM Raw.assets
 GROUP BY asset_id
 HAVING COUNT(*) > 1;
 
 -- Pro-rated Monthly Charge Calculation
 -- Replicates the 13, 8, 10 day split for January 2025
+-- Example tiered allocation logic for multi-period asset usage
 SELECT 
     asset_id,
-    MonthYear,
+    period,
     organization_department,
-    days_on_job,
-    -- Calculate Tier based on Total Days for the Asset in that Month
+    usage_days,
     CASE 
-        WHEN SUM(days_on_job) OVER(PARTITION BY asset_id, MonthYear) >= 22 THEN 1.00
-        WHEN SUM(days_on_job) OVER(PARTITION BY asset_id, MonthYear) >= 15 THEN 0.75
-        WHEN SUM(days_on_job) OVER(PARTITION BY asset_id, MonthYear) >= 8  THEN 0.50
-        WHEN SUM(days_on_job) OVER(PARTITION BY asset_id, MonthYear) >= 1  THEN 0.25
+        WHEN SUM(usage_days) OVER(PARTITION BY asset_id, period) >= high_threshold THEN 1.00
+        WHEN SUM(usage_days) OVER(PARTITION BY asset_id, period) >= mid_threshold THEN 0.75
+        WHEN SUM(usage_days) OVER(PARTITION BY asset_id, period) >= low_threshold THEN 0.50
+        WHEN SUM(usage_days) OVER(PARTITION BY asset_id, period) >= 1 THEN 0.25
         ELSE 0 
-    END AS billing_tier,
-    -- Pro-rate the cost across multiple departments in one month
-    (days_on_job / CAST(SUM(days_on_job) OVER(PARTITION BY asset_id, MonthYear) AS FLOAT)) 
-    * (internal_rental_rate * billing_tier) as monthly_charge
+    END AS allocation_factor,
+    (usage_days / CAST(SUM(usage_days) OVER(PARTITION BY asset_id, period) AS FLOAT)) 
+    * (base_rate * allocation_factor) AS allocated_cost
 FROM ExpandedAssetBilling;
 ```
 
