@@ -1,6 +1,6 @@
 {
   "api": {
-    "base_url": "https://api.tenna.com/v1",
+    "base_url": "https://api.com/v1",
     "token": "YOUR_API_TOKEN_HERE",
     "limit": 100,
     "max_retries": 5,
@@ -8,7 +8,7 @@
   },
   "fabric": {
     "workspace_name": "YOUR_WORKSPACE_NAME",
-    "lakehouse_name": "Tenna_Raw"
+    "lakehouse_name": "Data_Raw"
   },
   "endpoints": {
     "static_tables": [
