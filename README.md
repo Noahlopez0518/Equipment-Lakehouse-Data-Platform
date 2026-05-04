@@ -50,34 +50,73 @@ Power BI Dashboards
 
 ## 🚀 Key Features
 
-### 1. Reusable Ingestion Function
-- Handles API pagination automatically
-- Flattens nested JSON structures
-- Type enforcement (timestamps, longs, booleans, doubles)
-- Converts complex types to JSON strings
-- Schema validation and cleanup
+### 1. Multi-Pattern Ingestion Engine
+The ingestion framework supports multiple data loading strategies depending on dataset size and volatility:
 
-### 2. Incremental Loading with Deduplication
-- Tracks last successful run time
-- Uses `date_from` parameter for incremental loads
-- MERGE operations prevent duplicates
-- Composite key handling (e.g., `asset_id` + `date`)
+> **Full Refresh:** Used for smaller master datasets (e.g., `asset_master`) to ensure complete data consistency and accuracy.  
+> **Incremental Load:** Applied to high-volume telemetry tables to reduce API calls and optimize performance.
 
-### 3. Rate Limit Handling
-- Exponential backoff retry logic
-- Configurable retry attempts (default: 5)
-- Automatic delay between requests
-- Graceful degradation on persistent failures
+Automatically selects the ingestion strategy based on pipeline configuration.
 
-### 4. Data Quality
-- SQL validation queries for row counts
-- Null value identification
-- Schema correctness verification
-- Duplicate detection post-load
+---
 
-### 5. Control Table Pattern
-- `control_last_run` - Tracks pipeline execution metadata
-- `pipeline_last_run` - Records incremental load checkpoints
+### 2. Reusable Ingestion Framework
+A centralized ingestion function standardizes all API-to-Lakehouse ingestion workflows:
+
+- Handles API pagination automatically across all endpoints  
+- Flattens nested JSON structures into tabular format  
+- Enforces strict data types (timestamps, longs, booleans, doubles)  
+- Converts complex/nested objects into JSON strings for compatibility  
+- Includes schema validation and automatic cleanup logic  
+
+---
+
+### 3. Incremental Loading & Deduplication Engine
+Ensures efficient processing of large datasets while preventing duplicate records:
+
+- Tracks last successful pipeline execution using control tables  
+- Uses `date_from` parameters for incremental API pulls  
+- Implements `MERGE` logic for upserts into Delta tables  
+- Supports composite keys (e.g., `asset_id + date`) for precise deduplication  
+
+---
+
+### 4. Intelligent Watermarking & Boundary Buffer
+Prevents data loss and ensures continuity across ingestion cycles:
+
+- Maintains a Delta-based watermark table tracking `last_updated_at` per endpoint  
+- Implements a **10-minute lookback buffer** to capture delayed or late-arriving API records  
+- Ensures no gaps between pipeline executions  
+
+---
+
+### 5. Resilient API Integration Layer
+Built to handle unstable or rate-limited REST APIs at scale:
+
+- Exponential backoff logic for `429 / 430` rate limit responses  
+- Configurable retry mechanism with automatic delays  
+- Robust pagination handling for multi-page dataset extraction  
+- Graceful failure handling with controlled retries and logging  
+
+---
+
+### 6. Dynamic Schema Enforcement & Data Cleaning
+Standardizes raw API data into analytics-ready structures:
+
+- Enforces strict typing for `Timestamp`, `Double`, `Long`, and `Boolean` fields  
+- Detects and converts nested `Structs`, `Arrays`, and `Maps` into JSON strings  
+- Removes schema inconsistencies before loading into Lakehouse  
+- Ensures downstream compatibility with Power BI and analytics models  
+
+---
+
+### 7. Atomic Upserts with Delta MERGE
+Guarantees data integrity and a single source of truth:
+
+- Uses Delta Lake `MERGE` operations for insert/update logic  
+- Prevents duplicate records across ingestion cycles  
+- Supports both single-key and composite-key deduplication strategies  
+- Ensures atomic transactions within Microsoft Fabric Lakehouse  
 
 ## 📁 Repository Structure
 
