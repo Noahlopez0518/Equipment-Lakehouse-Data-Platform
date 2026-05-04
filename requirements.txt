@@ -1,4 +1,4 @@
-# Tenna Lakehouse Data Platform Requirements
+# Lakehouse Data Platform Requirements
 # For use in Microsoft Fabric Notebooks
 
 # Core Libraries
