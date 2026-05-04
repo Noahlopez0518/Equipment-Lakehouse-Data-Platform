@@ -103,21 +103,21 @@ Power BI Dashboards
 ---
 
 ## 📁 Repository Structure
-
-
+```text
+.
 ├── notebooks/
-│ ├── ten_tables_ingestion.ipynb # Static tables (full refresh)
-│ └── daily_ingestion_function.ipynb # Daily tables (incremental)
+│   ├── ingestion_engine.ipynb      # Centralized PySpark ingestion logic
+│   └── validation_suite.ipynb      # Data quality and integrity checks
 ├── config/
-│ └── config_template.json # Configuration template
+│   └── config_template.json        # Environment and API configuration
 ├── sql/
-│ └── validation_queries.sql # Data quality checks
+│   └── validation_queries.sql      # SQL-based quality & audit scripts
 ├── docs/
-│ ├── architecture.md # Detailed architecture
-│ └── setup_guide.md # Setup instructions
-├── .gitignore
-├── requirements.txt
-└── README.md
+│   ├── architecture.md             # System design documentation
+│   └── setup_guide.md              # Environment setup instructions
+├── .gitignore                      # Protected credentials filter
+├── requirements.txt                # Python dependency manifest
+└── README.md                       # Project documentation
 
 
 ---
