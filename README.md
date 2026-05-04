@@ -106,7 +106,7 @@ Power BI Dashboards
 - **ETL**: Dataflow Gen2 (for large endpoints)
 - **Orchestration**: Fabric Data Pipelines
 - **Visualization**: Power BI
-- **API**: Tenna REST API v1
+- **API**: REST API v1
 
 ## ⚙️ Setup Instructions
 
