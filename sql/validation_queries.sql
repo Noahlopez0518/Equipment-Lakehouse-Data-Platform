@@ -1,5 +1,5 @@
 -- ============================================================================
--- Tenna Lakehouse Data Validation Queries
+-- Lakehouse Data Validation Queries
 -- ============================================================================
 -- Practical queries using all 14 tables in your lakehouse
 
