@@ -1,18 +1,18 @@
-# Setup Guide - Tenna Lakehouse Data Platform
+# Setup Guide - Lakehouse Data Platform
 
-This guide walks you through setting up the Tenna data platform in Microsoft Fabric.
+This guide walks you through setting up the data platform in Microsoft Fabric.
 
 ## Prerequisites
 
 - Microsoft Fabric workspace with appropriate permissions
-- Tenna account with API access
-- Tenna API token (get from account settings)
+- Account with API access
+- API token (get from account settings)
 
 ## Step 1: Create Lakehouse
 
 1. Open your Microsoft Fabric workspace
 2. Click **+ New** → **Lakehouse**
-3. Name it: `Tenna_Raw`
+3. Name it: `Data_Raw`
 4. Click **Create**
 
 ## Step 2: Upload Notebooks
@@ -20,7 +20,7 @@ This guide walks you through setting up the Tenna data platform in Microsoft Fab
 1. In your Fabric workspace, click **+ New** → **Import notebook**
 2. Upload `ten_tables_ingestion.ipynb`
 3. Repeat for `daily_ingestion_function.ipynb`
-4. Attach both notebooks to the `Tenna_Raw` lakehouse
+4. Attach both notebooks to the `Data_Raw` lakehouse
 
 ## Step 3: Configure API Credentials
 
@@ -28,8 +28,8 @@ This guide walks you through setting up the Tenna data platform in Microsoft Fab
 
 ```python
 # Line 23-25: Update with your credentials
-API_TOKEN = "your_actual_tenna_api_token"
-BASE_URL = "https://api.tenna.com/v1"  # Keep as-is
+API_TOKEN = "your_actual_api_token"
+BASE_URL = "https://api.com/v1"  # Keep as-is
 LIMIT = 100  # Adjust if needed
 ```
 
@@ -37,8 +37,8 @@ LIMIT = 100  # Adjust if needed
 
 ```python
 # Line 21-25: Update with your credentials
-API_TOKEN = "your_actual_tenna_api_token"
-BASE_URL = "https://api.tenna.com/v1"  # Keep as-is
+API_TOKEN = "your_actual_api_token"
+BASE_URL = "https://api.com/v1"  # Keep as-is
 LIMIT = 100
 MAX_RETRIES = 5
 RETRY_DELAY = 60
@@ -49,7 +49,7 @@ RETRY_DELAY = 60
 1. Open `ten_tables_ingestion.ipynb`
 2. Click **Run all**
 3. Wait for completion (may take 1-3 hours)
-4. Verify 10 tables were created in `Tenna_Raw` lakehouse
+4. Verify 10 tables were created in `Data_Raw` lakehouse
 
 **Expected tables:**
 - `asset_financials`
@@ -109,7 +109,7 @@ table_name = "asset_net_working_hours_daily"
 ## Step 6: Create Automated Pipeline
 
 1. In your Fabric workspace, click **+ New** → **Data pipeline**
-2. Name it: `Tenna_Daily_Refresh`
+2. Name it: `Daily_Refresh`
 3. Add activities in sequence:
 
 ### Pipeline Structure:
@@ -154,7 +154,7 @@ table_name = "asset_net_working_hours_daily"
 If you're building Power BI dashboards:
 
 1. In Fabric workspace, click **+ New** → **Semantic model**
-2. Select your lakehouse: `Tenna_Raw`
+2. Select your lakehouse: `Data_Raw`
 3. Choose tables to include
 4. Define relationships:
    - `assets.asset_id` ↔ `asset_financials.asset_id`
@@ -168,18 +168,18 @@ Run these SQL queries to validate your setup:
 
 ```sql
 -- Check row counts
-SELECT 'assets' as table_name, COUNT(*) as rows FROM Tenna_Raw.assets
+SELECT 'assets' as table_name, COUNT(*) as rows FROM Data_Raw.assets
 UNION ALL
-SELECT 'asset_financials', COUNT(*) FROM Tenna_Raw.asset_financials;
+SELECT 'asset_financials', COUNT(*) FROM Data_Raw.asset_financials;
 
 -- Check for duplicates
 SELECT asset_id, COUNT(*) as count
-FROM Tenna_Raw.assets
+FROM Data_Raw.assets
 GROUP BY asset_id
 HAVING COUNT(*) > 1;
 
 -- Verify last run
-SELECT * FROM Tenna_Raw.control_last_run;
+SELECT * FROM Data_Raw.control_last_run;
 SELECT * FROM pipeline_last_run ORDER BY last_run_time DESC;
 ```
 
@@ -231,14 +231,14 @@ WHERE endpoint_name = 'asset-utilizations-daily';
 
 ### Check Pipeline Status
 - Go to **Fabric workspace** → **Pipelines**
-- View run history for `Tenna_Daily_Refresh`
+- View run history for `Daily_Refresh`
 
 ### Check Data Freshness
 ```sql
 SELECT 
     MAX(updated_at) as latest_update,
     DATEDIFF(hour, MAX(updated_at), GETDATE()) as hours_old
-FROM Tenna_Raw.assets;
+FROM Data_Raw.assets;
 ```
 
 ### Monitor Record Counts
@@ -260,7 +260,7 @@ Consider using **Dataflow Gen2** instead of Python notebooks:
 1. Create **New Dataflow Gen2**
 2. Add **REST API connector**
 3. Configure:
-   - URL: `https://api.tenna.com/v1/{endpoint}`
+   - URL: `https://api.com/v1/{endpoint}`
    - Headers: `Authorization: Bearer {token}`
    - Pagination: Offset-based
 4. Add transformations (flatten, type casts)
@@ -294,27 +294,27 @@ df.cache()  # Already implemented
 ## Support
 
 For issues specific to:
-- **Tenna API**: Contact Tenna support or check API docs
+- **API**: Contact support or check API docs
 - **Microsoft Fabric**: Check Microsoft Fabric documentation
 - **This implementation**: Open an issue on GitHub
 
 ---
 
-**Congratulations!** You now have a fully automated data platform. 🎉# Setup Guide - Tenna Lakehouse Data Platform
+**Congratulations!** You now have a fully automated data platform. 🎉# Setup Guide - Lakehouse Data Platform
 
-This guide walks you through setting up the Tenna data platform in Microsoft Fabric.
+This guide walks you through setting up the data platform in Microsoft Fabric.
 
 ## Prerequisites
 
 - Microsoft Fabric workspace with appropriate permissions
-- Tenna account with API access
-- Tenna API token (get from account settings)
+- Account with API access
+- API token (get from account settings)
 
 ## Step 1: Create Lakehouse
 
 1. Open your Microsoft Fabric workspace
 2. Click **+ New** → **Lakehouse**
-3. Name it: `Tenna_Raw`
+3. Name it: `Data_Raw`
 4. Click **Create**
 
 ## Step 2: Upload Notebooks
@@ -322,7 +322,7 @@ This guide walks you through setting up the Tenna data platform in Microsoft Fab
 1. In your Fabric workspace, click **+ New** → **Import notebook**
 2. Upload `ten_tables_ingestion.ipynb`
 3. Repeat for `daily_ingestion_function.ipynb`
-4. Attach both notebooks to the `Tenna_Raw` lakehouse
+4. Attach both notebooks to the `Data_Raw` lakehouse
 
 ## Step 3: Configure API Credentials
 
@@ -330,8 +330,8 @@ This guide walks you through setting up the Tenna data platform in Microsoft Fab
 
 ```python
 # Line 23-25: Update with your credentials
-API_TOKEN = "your_actual_tenna_api_token"
-BASE_URL = "https://api.tenna.com/v1"  # Keep as-is
+API_TOKEN = "your_actual_api_token"
+BASE_URL = "https://api.com/v1"  # Keep as-is
 LIMIT = 100  # Adjust if needed
 ```
 
@@ -339,8 +339,8 @@ LIMIT = 100  # Adjust if needed
 
 ```python
 # Line 21-25: Update with your credentials
-API_TOKEN = "your_actual_tenna_api_token"
-BASE_URL = "https://api.tenna.com/v1"  # Keep as-is
+API_TOKEN = "your_actual_api_token"
+BASE_URL = "https://api.com/v1"  # Keep as-is
 LIMIT = 100
 MAX_RETRIES = 5
 RETRY_DELAY = 60
@@ -351,7 +351,7 @@ RETRY_DELAY = 60
 1. Open `ten_tables_ingestion.ipynb`
 2. Click **Run all**
 3. Wait for completion (may take 1-3 hours)
-4. Verify 10 tables were created in `Tenna_Raw` lakehouse
+4. Verify 10 tables were created in `Data_Raw` lakehouse
 
 **Expected tables:**
 - `asset_financials`
@@ -411,7 +411,7 @@ table_name = "asset_net_working_hours_daily"
 ## Step 6: Create Automated Pipeline
 
 1. In your Fabric workspace, click **+ New** → **Data pipeline**
-2. Name it: `Tenna_Daily_Refresh`
+2. Name it: `Daily_Refresh`
 3. Add activities in sequence:
 
 ### Pipeline Structure:
@@ -456,7 +456,7 @@ table_name = "asset_net_working_hours_daily"
 If you're building Power BI dashboards:
 
 1. In Fabric workspace, click **+ New** → **Semantic model**
-2. Select your lakehouse: `Tenna_Raw`
+2. Select your lakehouse: `Data_Raw`
 3. Choose tables to include
 4. Define relationships:
    - `assets.asset_id` ↔ `asset_financials.asset_id`
@@ -472,23 +472,23 @@ Run these SQL queries to validate your setup:
 > **Note:** The queries below use example table names. You have **14 tables total** in your lakehouse. Update the table names in these queries to check row counts and duplicates for each of your specific tables.
 ```sql
 -- Check row counts (UPDATE table names for all 14 tables)
-SELECT 'assets' as table_name, COUNT(*) as rows FROM Tenna_Raw.assets
+SELECT 'assets' as table_name, COUNT(*) as rows FROM Data_Raw.assets
 UNION ALL
-SELECT 'asset_financials', COUNT(*) FROM Tenna_Raw.asset_financials
+SELECT 'asset_financials', COUNT(*) FROM Data_Raw.asset_financials
 UNION ALL
-SELECT 'asset_readings_daily', COUNT(*) FROM Tenna_Raw.asset_readings_daily;
+SELECT 'asset_readings_daily', COUNT(*) FROM Data_Raw.asset_readings_daily;
 -- Add remaining 11 tables...
 
 -- Check for duplicates (UPDATE table name and key field)
 SELECT asset_id, COUNT(*) as count
-FROM Tenna_Raw.assets
+FROM Data_Raw.assets
 GROUP BY asset_id
 HAVING COUNT(*) > 1;
 -- Repeat for each table with appropriate primary key
 
 -- Verify last run
-SELECT * FROM Tenna_Raw.control_last_run;
-SELECT * FROM Tenna_Raw.endpoint_tracking ORDER BY last_run_time DESC;
+SELECT * FROM Data_Raw.control_last_run;
+SELECT * FROM Data_Raw.endpoint_tracking ORDER BY last_run_time DESC;
 ```
 
 **Your 14 Tables:**
@@ -543,14 +543,14 @@ WHERE endpoint_name = 'asset-utilizations-daily';
 
 ### Check Pipeline Status
 - Go to **Fabric workspace** → **Pipelines**
-- View run history for `Tenna_Daily_Refresh`
+- View run history for `Daily_Refresh`
 
 ### Check Data Freshness
 ```sql
 SELECT 
     MAX(updated_at) as latest_update,
     DATEDIFF(hour, MAX(updated_at), GETDATE()) as hours_old
-FROM Tenna_Raw.assets;
+FROM Data_Raw.assets;
 ```
 
 ### Monitor Record Counts
@@ -572,7 +572,7 @@ Consider using **Dataflow Gen2** instead of Python notebooks:
 1. Create **New Dataflow Gen2**
 2. Add **REST API connector**
 3. Configure:
-   - URL: `https://api.tenna.com/v1/{endpoint}`
+   - URL: `https://api.com/v1/{endpoint}`
    - Headers: `Authorization: Bearer {token}`
    - Pagination: Offset-based
 4. Add transformations (flatten, type casts)
@@ -606,7 +606,7 @@ df.cache()  # Already implemented
 ## Support
 
 For issues specific to:
-- **Tenna API**: Contact Tenna support or check API docs
+- **API**: Contact Tenna support or check API docs
 - **Microsoft Fabric**: Check Microsoft Fabric documentation
 - **This implementation**: Open an issue on GitHub
 
