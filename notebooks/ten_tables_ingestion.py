@@ -1,265 +1,137 @@
-import requests
-import json
-import pandas as pd
-from datetime import datetime
+# ================================
+# IMPORTS + CONFIG
+# ================================
+import requests, json, pandas as pd, time
+from datetime import datetime, timedelta
+from pyspark.sql.functions import col, lit, to_json, base64, max as spark_max
+from pyspark.sql.types import *
 
-from pyspark.sql.functions import col, lit, to_json, base64
-from pyspark.sql.types import (
-    StructType, MapType, ArrayType, BinaryType,
-    DecimalType, NullType, DateType, TimestampType, LongType,
-    StructField, StringType
-)
+API_TOKEN, BASE_URL = "", "https://api.tenna.com/v1"
+LAKEHOUSE, LIMIT, RETRY_DELAY, MAX_RETRIES = "Tenna_Data.Tenna_Landing.dbo", 100, 60, 5
+BUFFER_MIN = 10
+spark.sql(f"USE {LAKEHOUSE}")
 
-API_TOKEN = "TENNA_API_TOKEN_HERE"
-BASE_URL = "https://api.tenna.com/v1"
-LIMIT = 100
-
-print("\n" + "="*70)
-print("INITIALIZING CONTROL TABLE")
-print("="*70)
-
-control_schema = StructType([
-    StructField("pipeline_name", StringType(), False),
-    StructField("last_run_time", TimestampType(), False),
-    StructField("status", StringType(), False)
+# ================================
+# WATERMARKS
+# ================================
+wm_table = f"{LAKEHOUSE}.watermarks"
+wm_schema = StructType([
+    StructField("endpoint", StringType(), False),
+    StructField("last_updated_at", TimestampType(), True),
+    StructField("saved_at", TimestampType(), False)
 ])
 
-try:
-    spark.sql("SELECT * FROM Tenna_Raw.control_last_run LIMIT 1")
-    print("Control table already exists")
-except:
-    print("Creating control_last_run table...")
-    control_df = spark.createDataFrame([
-        ("tenna_asset_tables", datetime.now(), "initialized")
-    ], schema=control_schema)
-    
-    control_df.write.format("delta").mode("overwrite").saveAsTable("Tenna_Raw.control_last_run")
-    print("Control table created")
+if not spark.catalog.tableExists(wm_table):
+    spark.createDataFrame([], wm_schema).write.format("delta").saveAsTable(wm_table)
 
-def download_and_save_endpoint(endpoint_name, table_name, datetime_cols=[], long_int_cols=[], boolean_cols=[]):
-    """
-    Downloads data from Tenna API endpoint and saves to lakehouse table
-    
-    Args:
-        endpoint_name: API endpoint (e.g., "assets", "asset-financials")
-        table_name: Table name to save to (e.g., "Tenna_Raw.assets")
-        datetime_cols: List of columns to cast as timestamp
-        long_int_cols: List of columns to cast as long integer
-        boolean_cols: List of columns to cast as boolean
-    """
-    
-    print(f"\n{'='*70}")
-    print(f"Processing: {endpoint_name}")
-    print(f"Target table: {table_name}")
-    print(f"{'='*70}\n")
-    
-    url = f"{BASE_URL}/{endpoint_name}"
-    headers = {"Authorization": f"Bearer {API_TOKEN}"}
-    
-    offset = 0
-    all_records = []
-    
+get_wm = lambda ep: (
+    (lambda r: r[0][0] - timedelta(minutes=BUFFER_MIN) if r and r[0][0] else None)
+    (spark.sql(f"SELECT last_updated_at FROM {wm_table} WHERE endpoint='{ep}' ORDER BY saved_at DESC LIMIT 1").collect())
+)
+
+def save_wm(ep, df, colname):
+    if colname in df.columns:
+        ts = df.agg(spark_max(col(colname))).collect()[0][0]
+        if ts:
+            spark.createDataFrame([(ep, ts, datetime.now())], wm_schema)\
+                 .write.format("delta").mode("append").saveAsTable(wm_table)
+
+# ================================
+# API
+# ================================
+def api_get(url, headers, params):
+    for i in range(MAX_RETRIES):
+        r = requests.get(url, headers=headers, params=params, timeout=30)
+        if r.status_code in [429,430]:
+            time.sleep(RETRY_DELAY*(i+1)); continue
+        r.raise_for_status(); return r
+    raise Exception("Max retries")
+
+def fetch(ep, params={}):
+    url, h, recs, off = f"{BASE_URL}/{ep}", {"Authorization":f"Bearer {API_TOKEN}"}, [], 0
     while True:
-        print(f" → Fetching offset {offset} ... ", end="")
-        r = requests.get(url, headers=headers, params={"limit": LIMIT, "offset": offset})
-        r.raise_for_status()
-        page = r.json().get("results", [])
-        print(f"{len(page)} rows")
-        
-        if not page:
-            break
-        
-        all_records.extend(page)
-        offset += LIMIT
-    
-    print(f"\n Download complete: {len(all_records)} records\n")
+        p = {"limit":LIMIT,"offset":off}|params
+        page = api_get(url,h,p).json().get("results",[])
+        recs += page
+        if len(page)<LIMIT: break
+        off += LIMIT; time.sleep(.3)
+    return recs
 
- pdf = pd.DataFrame(all_records)
-    print(f"Columns loaded: {len(pdf.columns)}")
-    
+# ================================
+# TRANSFORM
+# ================================
+def clean(pdf):
     for c in pdf.columns:
-        if pdf[c].apply(lambda x: isinstance(x, (list, dict))).any():
-            pdf[c] = pdf[c].apply(lambda x: json.dumps(x) if isinstance(x, (list, dict)) else x)
-        if pdf[c].isnull().all():
-            pdf[c] = ""
-    
-    print("Pandas cleanup done\n")
-    
-    df = spark.createDataFrame(pdf)
-    
-    print("Cleaning schema...")
-    
-    for c in datetime_cols:
-        if c in df.columns:
-            df = df.withColumn(c, col(c).cast(TimestampType()))
-    
-    for c in long_int_cols:
-        if c in df.columns:
-            df = df.withColumn(c, col(c).cast(LongType()))
-    
-    for c in boolean_cols:
-        if c in df.columns:
-            df = df.withColumn(c, col(c).cast("boolean"))
-    
-    null_cols = [f.name for f in df.schema.fields if f.dataType.simpleString() == "null"]
-    for c in null_cols:
-        df = df.withColumn(c, lit("").cast("string"))
-    
-    for f in df.schema.fields:
-        if isinstance(f.dataType, (StructType, MapType, ArrayType)):
-            df = df.withColumn(f.name, to_json(col(f.name)))
-    
-    for f in df.schema.fields:
-        if isinstance(f.dataType, BinaryType):
-            df = df.withColumn(f.name, base64(col(f.name)).cast("string"))
-    
-    for f in df.schema.fields:
+        if pdf[c].apply(lambda x:isinstance(x,(list,dict))).any():
+            pdf[c]=pdf[c].apply(lambda x:json.dumps(x) if isinstance(x,(list,dict)) else x)
+    return pdf
 
-       if isinstance(f.dataType, DecimalType):
-            df = df.withColumn(f.name, col(f.name).cast("double"))
-    
-    allowed_simple = {"string", "bigint", "double", "boolean", "date", "timestamp", "int", "long", "float"}
+def cast(df, dt=[], dbl=[], lng=[], boo=[]):
+    for c,t in [(dt,TimestampType),(dbl,DoubleType),(lng,LongType),(boo,BooleanType)]:
+        for coln in c:
+            if coln in df.columns: df=df.withColumn(coln,col(coln).cast(t()))
     for f in df.schema.fields:
-        if f.dataType.simpleString() not in allowed_simple:
-            df = df.withColumn(f.name, col(f.name).cast("string"))
-    
-    print(f"Saving to table: {table_name}")
-    df.cache()
-    df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(table_name)
-    
-    print(f"SUCCESS: {table_name}")
-    print(f"  - Rows: {len(all_records):,}")
-    print(f"  - Columns: {len(df.columns)}")
-    print()
-    
+        n,t=f.name,f.dataType
+        if isinstance(t,(StructType,MapType,ArrayType)): df=df.withColumn(n,to_json(col(n)))
+        elif isinstance(t,BinaryType): df=df.withColumn(n,base64(col(n)).cast(StringType()))
+        elif isinstance(t,DecimalType): df=df.withColumn(n,col(n).cast(DoubleType()))
+        elif isinstance(t,NullType): df=df.withColumn(n,lit(None).cast(StringType()))
     return df
 
-print("\n" + "="*70)
-print("STARTING TENNA API DATA PIPELINE - ALL 13 TABLES")
-print("="*70)
+# ================================
+# WRITE
+# ================================
+def write(df, table, pk, cpk=None):
+    name=f"{LAKEHOUSE}.{table}"
+    if not spark.catalog.tableExists(name):
+        df.write.format("delta").mode("overwrite").saveAsTable(name)
+    else:
+        keys=cpk or [pk]
+        cond=" AND ".join([f"target.{k}=source.{k}" for k in keys])
+        df.dropDuplicates(keys).createOrReplaceTempView("_src")
+        spark.sql(f"MERGE INTO {name} target USING _src source ON {cond} "
+                  f"WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT *")
 
-# 1. Asset Financials
-df_financials = download_and_save_endpoint(
-    endpoint_name="asset-financials",
-    table_name="Tenna_Raw.asset_financials",
-    datetime_cols=["purchase_date", "created_at", "updated_at", "last_reading_date", 
-                   "rental_start", "rental_actual_end", "rental_forecasted_end", 
-                   "rpo_expiration", "sold_date", "insurance_expiration_date", 
-                   "insurance_start_date"],
-    long_int_cols=["difference_labor_cost", "disposition_broker_fee", "hauling_cost", 
-                   "remaining_days", "loan_term_in_months", "lease_term_in_months"],
-    boolean_cols=["rpo_option"]
-)
+# ================================
+# ENGINE
+# ================================
+def run(cfg):
+    ep, tbl, pk = cfg["endpoint"], cfg["table"], cfg["pk"]
+    dt, dbl, lng, boo = cfg.get("dt",[]), cfg.get("dbl",[]), cfg.get("lng",[]), cfg.get("boo",[])
+    upd, fp, full, cpk = cfg.get("upd","updated_at"), cfg.get("fp","updated_from"), cfg.get("full",False), cfg.get("cpk")
 
-# 2. Assets
-df_assets = download_and_save_endpoint(
-    endpoint_name="assets",
-    table_name="Tenna_Raw.assets",
-    datetime_cols=["created_at", "updated_at", "tracker_last_data_received", 
-                   "tracker_installed_at", "tracker_verification_date"],
-    long_int_cols=["year", "engine_year", "dimensions_tire_quantity", 
-                   "tracker_days_since_last_location_report"],
-    boolean_cols=["billable", "ifta", "vehicle_type_hazmat", "vehicle_type_apportioned",
-                  "eld_enabled", "tracker_associated", "ignore_ecu_idle_hours"]
-)
+    print(f"\n{ep} → {tbl}")
+    params={}
+    if not full and spark.catalog.tableExists(f"{LAKEHOUSE}.{tbl}"):
+        wm=get_wm(ep)
+        params[fp]=(wm or datetime.now()-timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-# 3. Asset Assignee History
-df_assignee_history = download_and_save_endpoint(
-    endpoint_name="asset-assignee-history",
-    table_name="Tenna_Raw.asset_assignee_history",
-    datetime_cols=["assignment_start", "assignment_end", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=["currently_assigned"]
-)
+    recs=fetch(ep,params)
+    if not recs: return
 
-# 4. Asset Label Associations
-df_label_associations = download_and_save_endpoint(
-    endpoint_name="asset-label-associations",
-    table_name="Tenna_Raw.asset_label_associations",
-    datetime_cols=["associated_at", "removed_at", "updated_at", "asset_label_created_at"],
-    long_int_cols=["asset_label_order"],
-    boolean_cols=["currently_applied", "asset_label_deactivated"]
-)
+    df=spark.createDataFrame(clean(pd.DataFrame(recs)))
+    df=cast(df,dt,dbl,lng,boo)
 
-# 5. Asset DT Codes (Diagnostic Trouble Codes)
-df_dt_codes = download_and_save_endpoint(
-    endpoint_name="asset-dt-codes",
-    table_name="Tenna_Raw.asset_dt_codes",
-    datetime_cols=["timestamp", "acknowledged_at", "created_at", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=["is_acknowledged"]
-)
+    if full or not spark.catalog.tableExists(f"{LAKEHOUSE}.{tbl}"):
+        df.write.format("delta").mode("overwrite").saveAsTable(f"{LAKEHOUSE}.{tbl}")
+    else:
+        write(df,tbl,pk,cpk)
 
-# 6. Asset Labels
-df_labels = download_and_save_endpoint(
-    endpoint_name="asset-labels",
-    table_name="Tenna_Raw.asset_labels",
-    datetime_cols=["deactivated_at", "created_at", "updated_at"],
-    long_int_cols=["order"],
-    boolean_cols=["deactivated"]
-)
+    save_wm(ep,df,upd)
 
-# 7. Asset Organization History
-df_org_history = download_and_save_endpoint(
-    endpoint_name="asset-organization-history",
-    table_name="Tenna_Raw.asset_organization_history",
-    datetime_cols=["from", "to", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=["currently_applied"]
-)
+# ================================
+# CONFIG (ADD ALL TABLES HERE)
+# ================================
+CONFIG=[
+    {"endpoint":"assets","table":"assets","pk":"asset_id","dt":["created_at","updated_at"],"full":True},
+    {"endpoint":"asset-financials","table":"asset_financials","pk":"asset_id","dt":["purchase_date","updated_at"],"full":True},
+    {"endpoint":"asset-assignee-history","table":"asset_assignee_history","pk":"asset_assignee_history_id","dt":["assignment_start","updated_at"]},
+    {"endpoint":"asset-utilizations-daily","table":"asset_utilizations_daily","pk":"asset_id","dt":["date","updated_at"],"cpk":["asset_id","date"],"fp":"date_from"}
+]
 
-# 8. Asset Registrations
-df_registrations = download_and_save_endpoint(
-    endpoint_name="asset-registrations",
-    table_name="Tenna_Raw.asset_registrations",
-    datetime_cols=["expiration_date", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=[]
-)
-
-# 9. Asset Site History
-df_site_history = download_and_save_endpoint(
-    endpoint_name="asset-site-history",
-    table_name="Tenna_Raw.asset_site_history",
-    datetime_cols=["enter_date", "exit_date", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=["currently_applied"]
-)
-# 10. Asset Warranties
-df_warranties = download_and_save_endpoint(
-    endpoint_name="asset-warranties",
-    table_name="Tenna_Raw.asset_warranties",
-    datetime_cols=["start_date", "end_value_date", "updated_at"],
-    long_int_cols=[],
-    boolean_cols=["expired"]
-)
-
-print("\n" + "="*70)
-print("UPDATING CONTROL TABLE")
-print("="*70)
-
-control_update = spark.createDataFrame([
-    ("tenna_asset_tables", datetime.now(), "success")
-], schema=control_schema)
-
-control_update.write.format("delta").mode("overwrite").saveAsTable("Tenna_Raw.control_last_run")
-
-print(f"Pipeline completed successfully at {datetime.now()}")
-
-print("\n" + "="*70)
-print("PIPELINE COMPLETE - ALL 10 TABLES CREATED")
-print("="*70)
-print("Tables created:")
-print("  1. Tenna_Raw.asset_financials")
-print("  2. Tenna_Raw.assets")
-print("  3. Tenna_Raw.asset_assignee_history")
-print("  4. Tenna_Raw.asset_label_associations")
-print("  5. Tenna_Raw.asset_dt_codes")
-print("  6. Tenna_Raw.asset_labels")
-print("  7. Tenna_Raw.asset_organization_history")
-print("  8. Tenna_Raw.asset_registrations")
-print("  9. Tenna_Raw.asset_site_history")
-print(" 10. Tenna_Raw.asset_warranties")
-print("\nControl table:")
-print(" 11. Tenna_Raw.control_last_run")
-print("="*70)
+# ================================
+# RUN
+# ================================
+print(f"START: {datetime.now()}")
+for c in CONFIG: run(c)
+print(f"END: {datetime.now()}")
