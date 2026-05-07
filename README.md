@@ -25,6 +25,21 @@ Semantic Model (relationships + DAX measures)
 Power BI Dashboards
 ```
 
+### 🔷 High-Level System Design
+
+```text
+REST API Layer (14 endpoints)
+        ↓
+Bronze Layer (Raw ingestion + audit tracking)
+        ↓
+Silver Layer (Cleansed + standardized + deduplicated)
+        ↓
+Gold Layer (Business KPIs + analytical models)
+        ↓
+Semantic Model (DAX + relationships)
+        ↓
+Power BI Dashboards
+
 **Data Split Strategy:**
 - **Python/PySpark**: 10 smaller endpoints (1,300 - 500,000 rows)
 - **Dataflow Gen2**: 4 largest endpoints (500,000 - 1.5M rows) for optimized performance
@@ -291,50 +306,3 @@ For questions about this implementation approach, please open an issue or reach 
 ---
 
 **Note**: This repository contains sanitized code with credentials removed. You'll need to configure your own API tokens and workspace details to run this code.
-
-
-# 🏗️ Equipment Lakehouse Data Platform (Microsoft Fabric)
-
-![Microsoft Fabric](https://img.shields.io/badge/Microsoft%20Fabric-Lakehouse-blue)
-![PySpark](https://img.shields.io/badge/PySpark-ETL-orange)
-![Delta Lake](https://img.shields.io/badge/Delta-Lake-architecture-purple)
-![Power BI](https://img.shields.io/badge/Power-BI-yellow)
-![Status](https://img.shields.io/badge/Project-Production%20Style-green)
-
----
-
-## 🚀 Overview
-
-A **production-style data engineering platform** built on Microsoft Fabric that ingests, processes, and models equipment data from **14 REST API endpoints** into a scalable **lakehouse architecture**.
-
-The system implements **medallion architecture, incremental ingestion, automated orchestration, and Power BI analytics**, simulating real enterprise data platform behavior.
-
----
-
-## 🎯 Key Highlights
-
-- ⚡ End-to-end **lakehouse architecture (Bronze → Silver → Gold)**
-- 🔄 Automated **incremental data ingestion pipelines**
-- 🧠 Enterprise-style **data modeling & semantic layer**
-- 📊 Interactive **Power BI dashboards with KPI-driven analytics**
-- 🛡️ Built-in **data quality + validation framework**
-- ⚙️ Handles **millions of records across multiple APIs**
-
----
-
-## 🧱 Architecture
-
-### 🔷 High-Level System Design
-
-```text
-REST API Layer (14 endpoints)
-        ↓
-Bronze Layer (Raw ingestion + audit tracking)
-        ↓
-Silver Layer (Cleansed + standardized + deduplicated)
-        ↓
-Gold Layer (Business KPIs + analytical models)
-        ↓
-Semantic Model (DAX + relationships)
-        ↓
-Power BI Dashboards
