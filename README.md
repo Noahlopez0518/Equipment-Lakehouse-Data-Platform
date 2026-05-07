@@ -25,21 +25,6 @@ Semantic Model (relationships + DAX measures)
 Power BI Dashboards
 ```
 
-### 🔷 High-Level System Design
-
-```text
-REST API Layer (14 endpoints)
-        ↓
-Bronze Layer (Raw ingestion + audit tracking)
-        ↓
-Silver Layer (Cleansed + standardized + deduplicated)
-        ↓
-Gold Layer (Business KPIs + analytical models)
-        ↓
-Semantic Model (DAX + relationships)
-        ↓
-Power BI Dashboards
-
 **Data Split Strategy:**
 - **Python/PySpark**: 10 smaller endpoints (1,300 - 500,000 rows)
 - **Dataflow Gen2**: 4 largest endpoints (500,000 - 1.5M rows) for optimized performance
