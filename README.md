@@ -32,22 +32,22 @@ Power BI Dashboards
 ## 📊 Data Sources
 
 ### Static Tables (Full Refresh)
-1. `asset_financials` - Financial data, purchases, rentals, depreciation
-2. `assets` - Core asset/equipment master data
-3. `asset_assignee_history` - Equipment assignment tracking
-4. `asset_label_associations` - Asset labeling and categorization
-5. `asset_dt_codes` - Diagnostic trouble codes
-6. `asset_labels` - Label definitions
-7. `asset_organization_history` - Organizational changes
-8. `asset_registrations` - Registration and compliance data
-9. `asset_site_history` - Site location history
-10. `asset_warranties` - Warranty information
+1. `Table1` - Financial data, purchases, rentals, depreciation
+2. `Table2` - Core asset/equipment master data
+3. `Table3` - Equipment assignment tracking
+4. `Table4` - Asset labeling and categorization
+5. `Table5` - Diagnostic trouble codes
+6. `Table6` - Label definitions
+7. `Table7` - Organizational changes
+8. `Table8` - Registration and compliance data
+9. `Table9` - Site location history
+10. `Table10` - Warranty information
 
 ### Daily Tables (Incremental Load)
-11. `asset_readings_daily` - Daily equipment readings (hours, odometer)
-12. `asset_utilizations_daily` - Daily utilization metrics
-13. `asset_site_daily_utilizations` - Site-level daily utilization
-14. `asset_net_working_hours_daily` - Net working hours calculations
+11. `Table11` - Daily equipment readings (hours, odometer)
+12. `Table12` - Daily utilization metrics
+13. `Table13` - Site-level daily utilization
+14. `Table14` - Net working hours calculations
 
 ## 🚀 Key Features
 
