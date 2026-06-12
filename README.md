@@ -1,6 +1,6 @@
 # Equipment Lakehouse Data Platform - Microsoft Fabric
 
-An automated data engineering solution built on Microsoft Fabric that centralizes equipment tracking data from 14 API endpoints into a lakehouse architecture with Delta tables, enabling real-time analytics and automated reporting.
+An automated data engineering solution built on Microsoft Fabric that centralizes equipment tracking data from API endpoints into a lakehouse architecture with Delta tables, enabling real-time analytics and automated reporting.
 
 ## 🎯 Project Overview
 
@@ -14,7 +14,7 @@ This project delivers an end-to-end data platform that:
 ## 🏗️ Architecture
 
 ```
-API (20 endpoints)
+API (endpoints)
     ↓
 PySpark Ingestion Layer (Python + Dataflow Gen2)
     ↓
@@ -27,7 +27,7 @@ Power BI Dashboards
 
 **Data Split Strategy:**
 - **Python/PySpark**: 10 smaller endpoints (1,300 - 500,000 rows)
-- **Dataflow Gen2**: 4 largest endpoints (500,000 - 1.5M rows) for optimized performance
+- **Dataflow Gen2**: 4 largest endpoints (500,000 - 3M+ rows) for optimized performance
 
 ## 📊 Data Sources
 
