@@ -271,7 +271,7 @@ delta_table.alias("target").merge(
 
 ## 📊 Performance
 
-- **Initial Load**: ~2-3 hours for all 14 endpoints
+- **Initial Load**: ~2-16 hours for all 14 endpoints
 - **Daily Incremental**: ~10-15 minutes
 - **Total Data Volume**: Millions of records across tables
 - **Refresh Frequency**: Daily (automated)
